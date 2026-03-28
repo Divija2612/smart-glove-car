@@ -1,51 +1,55 @@
 #include <Arduino.h>
-#include <esp_now.h>
 #include <WiFi.h>
+#include <WiFiUdp.h>
 #include <Wire.h>
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
 
-// 1. REPLACE THIS with your teammate's Car MAC Address
-uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+#define F 1
+#define FR 2
+#define R 3
+#define BR 4
+#define B 5
+#define BL 6
+#define L 7
+#define FL 8
+#define S 9
 
+// --- WiFi Settings ---
+const char* ssid = "RITHOBRATHO_CAR";      
+const char* password = "password123";  
+const char* carIP = "192.168.4.1";     
+const int udpPort = 4210;              
+
+WiFiUDP udp;
 Adafruit_MPU6050 mpu;
-
-// This structure must match the Receiver's structure
-typedef struct struct_message {
-    char command[20];
-} struct_message;
-
-struct_message myData;
-esp_now_peer_info_t peerInfo;
 
 void setup() {
   Serial.begin(115200);
-  
-  // Set Wi-Fi to Station mode for ESP-NOW
-  WiFi.mode(WIFI_STA);
+  delay(1000); // Give hardware time to stabilize
 
-  // Initialize ESP-NOW
-  if (esp_now_init() != ESP_OK) {
-    Serial.println("Error initializing ESP-NOW");
-    return;
-  }
-
-  // Register the peer (The Car)
-  memcpy(peerInfo.peer_addr, broadcastAddress, 6);
-  peerInfo.channel = 0;  
-  peerInfo.encrypt = false;
-  
-  if (esp_now_add_peer(&peerInfo) != ESP_OK) {
-    Serial.println("Failed to add peer");
-    return;
-  }
-
-  // Init MPU6050 (Double check your pins: 4,5 or 8,9?)
+  // 1. MUST INITIALIZE SENSOR FIRST (Pins 8, 9)
   Wire.begin(8, 9); 
-  if (!mpu.begin()) {
-    Serial.println("MPU6050 missing!");
-    //while (1) delay(10);
+  if (mpu.begin()) {
+    Serial.println("MPU6050 missing! Check pins 8 and 9.");
+    while (1) delay(10);
   }
+  Serial.println("MPU6050 Found!");
+
+  // 2. Set ranges (Standard for smooth driving)
+  mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
+  mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
+
+  // 3. NOW Start WiFi
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\nConnected to Car WiFi!");
 }
 
 void loop() {
@@ -55,23 +59,34 @@ void loop() {
   float x = a.acceleration.x;
   float y = a.acceleration.y;
   float threshold = 3.5; 
+  int command = S; // Default to Stop
 
   // 8-Way Directional Logic
-  if (y > threshold && x < -threshold)      strcpy(myData.command, "FL");
-  else if (y > threshold && x > threshold)  strcpy(myData.command, "FR");
-  else if (y < -threshold && x < -threshold) strcpy(myData.command, "BL");
-  else if (y < -threshold && x > threshold)  strcpy(myData.command, "BR");
-  else if (y > threshold)                   strcpy(myData.command, "FO");
-  else if (y < -threshold)                  strcpy(myData.command, "BA");
-  else if (x > threshold)                   strcpy(myData.command, "RI");
-  else if (x < -threshold)                  strcpy(myData.command, "LE");
-  else                                      strcpy(myData.command, "STOP");
+  if (y > threshold && x < -threshold)      command = FL;
+  else if (y > threshold && x > threshold)  command = FR;
+  else if (y < -threshold && x < -threshold) command = BL;
+  else if (y < -threshold && x > threshold)  command = BR;
+  else if (y > threshold)                   command = F;
+  else if (y < -threshold)                  command = B;
+  else if (x > threshold)                   command = R;
+  else if (x < -threshold)                  command = L;
+  else                                      command = S;
 
-  // Send the command wirelessly
-  esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
-  
-  Serial.print("Sending: ");
-  Serial.println(myData.command);
-  
-  delay(500); // Fast 10Hz update rate for smooth driving
+  // 4. Send the command via UDP
+  if (WiFi.status() == WL_CONNECTED) {
+    udp.beginPacket(carIP, udpPort);
+    udp.write(command);
+    udp.endPacket();
+    
+    Serial.print("Sent: ");
+    Serial.println(command);
+  } else {
+    Serial.println("WiFi Lost! Reconnecting...");
+    WiFi.begin(ssid, password);
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(500);
+      Serial.print(".");
+    }
+  }
+  delay(1000);
 }
