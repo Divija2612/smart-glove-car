@@ -3,6 +3,7 @@
 A gesture-controlled car built with an **ESP32-C3** microcontroller and **MPU6050** IMU. Hand tilt movements are captured in real-time, processed on the glove-side ESP32-C3, and transmitted wirelessly as directional commands to a receiver unit mounted on the car.
 
 ---
+## Note: This repository mainly contains information about the glove used in the gesture-controlled smart car system.
 
 ## Table of Contents
 
@@ -46,16 +47,7 @@ A gesture-controlled car built with an **ESP32-C3** microcontroller and **MPU605
 | LiPo Battery | 3.7V 500–1000 mAh | Portable power for glove |
 | 3.3V LDO Regulator | AMS1117 or similar | Regulate battery voltage to 3.3V |
 
-### Car Unit (Receiver)
 
-| Component | Specification | Purpose |
-|-----------|--------------|---------|
-| ESP32-C3 | 160 MHz RISC-V, Wi-Fi/BLE | Wireless receiver + motor control |
-| L298N Motor Driver | Dual H-Bridge, up to 2A per channel | Drive DC motors |
-| DC Gear Motors | 3–6V, TT or N20 | Wheel propulsion |
-| LiPo / 18650 Pack | 7.4V or 2S LiPo | Power motors and MCU |
-
----
 
 ## Circuit Connections
 
@@ -69,19 +61,6 @@ A gesture-controlled car built with an **ESP32-C3** microcontroller and **MPU605
 | SCL | GPIO7 | I2C Clock |
 | AD0 | GND | I2C address = 0x68 |
 | INT | GPIO4 (optional) | Data-ready interrupt |
-
-### Car Side — ESP32-C3 → L298N
-
-| ESP32-C3 Pin | L298N Pin | Description |
-|-------------|----------|-------------|
-| GPIO0 | IN1 | Motor A direction |
-| GPIO1 | IN2 | Motor A direction |
-| GPIO2 | IN3 | Motor B direction |
-| GPIO3 | IN4 | Motor B direction |
-| GPIO8 | ENA (PWM) | Motor A speed |
-| GPIO9 | ENB (PWM) | Motor B speed |
-
-> **Note:** L298N 12V input → motor battery. L298N 5V output can power ESP32-C3 via Vin if jumper is set. Verify current ratings.
 
 ---
 
@@ -194,6 +173,13 @@ pio device monitor --baud 115200
 
 
 ---
+## Key Challenges & Fixes
+1. Serial Monitor Connection Issue
+The program contained an unintended infinite while loop, which prevented the serial monitor from establishing a connection. I carefully reviewed the entire codebase, identified the loop causing the blockage, and corrected it to restore proper communication.
+2. Power Consumption During Wi-Fi Communication
+Transmitting data over Wi-Fi required significantly higher power than expected. As a result, the system could not be reliably powered by a standard battery setup. To ensure stable performance, a power bank was used as an external power source.
+3. Incorrect GPIO Pin Configuration
+Initially, the motor driver connections were made to GPIO pins 4 and 5, which led to incorrect behavior (continuous backward motion). After reconfiguring the connections to GPIO pins 8 and 9, the system responded correctly, enabling proper control commands such as forward, backward, left, right, and stop.
 
 ## Future Improvements
 
