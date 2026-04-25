@@ -1,9 +1,13 @@
-# Smart Glove Car 🤚🚗
+# Smart Glove Car 
 
 A gesture-controlled car built with an **ESP32-C3** microcontroller and **MPU6050** IMU. Hand tilt movements are captured in real-time, processed on the glove-side ESP32-C3, and transmitted wirelessly as directional commands to a receiver unit mounted on the car.
 
 ---
-## Note: This repository mainly contains information about the glove used in the gesture-controlled smart car system.
+
+## Contributors
+
+- **I built the smart glove unit**, including sensor integration, gesture detection, wireless transmission, and glove-side programming.  
+- **My teammate Rithobratho Saha built the car unit**, including motor driver integration, receiver-side control logic, and vehicle assembly.
 
 ## Table of Contents
 
@@ -181,12 +185,4 @@ Transmitting data over Wi-Fi required significantly higher power than expected. 
 3. Incorrect GPIO Pin Configuration
 Initially, the motor driver connections were made to GPIO pins 4 and 5, which led to incorrect behavior (continuous backward motion). After reconfiguring the connections to GPIO pins 8 and 9, the system responded correctly, enabling proper control commands such as forward, backward, left, right, and stop.
 
-## Future Improvements
-
-- [ ] Add PID control for smoother speed transitions
-- [ ] Implement gyroscope-based complementary filter (currently accelerometer-only)
-- [ ] Add OLED display on glove for real-time angle readout
-- [ ] Support servo-based steering (single rear motor + front servo)
-- [ ] OTA firmware updates over Wi-Fi
-- [ ] Mobile app dashboard via BLE for telemetry
 
